@@ -2,15 +2,15 @@
 
 Supermarket management system
 
-## Getting Started
+- The Supermarket Management System is a web-based application designed to support daily operations of a supermarket.
 
-This project is a starting point for a Flutter application.
+- The system focuses on in-store sales management (POS), inventory control, staff management, and reporting.
 
-A few resources to get you started if this is your first Flutter project:
+- Main purposes of the system include:
+  + Managing supermarket products and inventory
+  + Supporting sales transactions at cashier counters (POS)
+  + Managing staff roles and permissions
+  + Tracking orders and sales history
+  + Providing reports for management decision-making
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- The system is intended to be used by supermarket staff such as cashiers, inventory staff, managers, and administrators.
