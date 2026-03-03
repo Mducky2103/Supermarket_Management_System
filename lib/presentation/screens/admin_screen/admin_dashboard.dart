@@ -39,7 +39,7 @@ class AdminDashboard extends StatelessWidget {
               icon: Icons.inventory_2_rounded,
               color: Colors.orange,
               onTap: () {
-                // Sẽ code sau: Navigator.pushNamed(context, '/product_management');
+                Navigator.pushNamed(context, '/product_management');
               },
             ),
             _buildMenuCard(
@@ -47,7 +47,9 @@ class AdminDashboard extends StatelessWidget {
               title: "Danh mục",
               icon: Icons.category_rounded,
               color: Colors.green,
-              onTap: () {},
+              onTap: () {
+                Navigator.pushNamed(context, '/category_management');
+              },
             ),
             _buildMenuCard(
               context,
