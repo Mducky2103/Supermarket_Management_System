@@ -39,4 +39,21 @@ class UserRepository {
         whereArgs: [email]
     );
   }
+
+  // USER MANAGEMENT
+
+  Future<List<Map<String, dynamic>>> getAllUsers() async {
+    final db = await dbHelper.database;
+    return await db.query('users', orderBy: 'user_id DESC');
+  }
+
+  Future<int> updateUser(int id, Map<String, dynamic> data) async {
+    final db = await dbHelper.database;
+    return await db.update('users', data, where: 'user_id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteUser(int id) async {
+    final db = await dbHelper.database;
+    return await db.delete('users', where: 'user_id = ?', whereArgs: [id]);
+  }
 }

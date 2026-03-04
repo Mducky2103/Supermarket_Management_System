@@ -19,7 +19,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 5,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -67,6 +67,7 @@ class DatabaseHelper {
         cost_price $doubleType,
         stock_qty $integerType,
         image_path TEXT,
+        is_active INTEGER DEFAULT 1,
         FOREIGN KEY (category_id) REFERENCES categories (category_id)
       )
     ''');
@@ -97,7 +98,7 @@ class DatabaseHelper {
         FOREIGN KEY (product_id) REFERENCES products (product_id)
       )
     ''');
-    
+
     // 6. Bảng Customers (Quản lý khách hàng & Loyalty)
     await db.execute('''
     CREATE TABLE customers (
@@ -113,14 +114,30 @@ class DatabaseHelper {
     await db.execute('''
     CREATE TABLE inventory_inbound (
       inbound_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER,  
-      status TEXT, -- Pending, Approved
-      created_at TEXT,
-      FOREIGN KEY (user_id) REFERENCES users (user_id)
+      user_id INTEGER,          -- Người tạo (Warehouse Staff)
+      approved_by INTEGER,      -- Người duyệt (Manager)
+      status TEXT,              -- Pending, Approved, Rejected
+      notes TEXT,               
+      created_at TEXT,          
+      approved_at TEXT,         
+      FOREIGN KEY (user_id) REFERENCES users (user_id),
+      FOREIGN KEY (approved_by) REFERENCES users (user_id)
     )
   ''');
 
-    // 8. Bảng Promotions (Khuyến mãi)
+    // 8. Bảng InventoryInboundItems (Chi tiết phiếu nhập)
+    await db.execute('''
+    CREATE TABLE inventory_inbound_items (
+      item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      inbound_id INTEGER,       -- Liên kết với phiếu nhập bên trên
+      product_id INTEGER,       -- Sản phẩm nào
+      quantity INTEGER,         -- Số lượng nhập vào
+      FOREIGN KEY (inbound_id) REFERENCES inventory_inbound (inbound_id),
+      FOREIGN KEY (product_id) REFERENCES products (product_id)
+    )
+  ''');
+
+    // 9. Bảng Promotions (Khuyến mãi)
     await db.execute('''
     CREATE TABLE promotions (
       promo_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -138,12 +155,6 @@ class DatabaseHelper {
     );
   }
 
-  // Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-  //   if (oldVersion < 2) {
-  //     await db.execute('ALTER TABLE users ADD COLUMN token TEXT');
-  //     print("Database upgraded: Added token column to users table");
-  //   }
-  // }
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await db.execute('ALTER TABLE users ADD COLUMN token TEXT');
@@ -152,6 +163,38 @@ class DatabaseHelper {
       // Thêm cột email vào bảng users nếu đang ở version cũ hơn 3
       await db.execute('ALTER TABLE users ADD COLUMN email TEXT');
       print("Database upgraded: Added email column to users table");
+    }
+    if (oldVersion < 4 ) {
+      try {
+        await db.execute('ALTER TABLE products ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1');
+        print("Đã thêm cột is_active thành công!");
+      } catch (e) {
+        print("Cột đã tồn tại hoặc có lỗi: $e");
+      }
+    }
+    if (oldVersion < 7) {
+      try {
+        await db.execute('ALTER TABLE inventory_inbound ADD COLUMN approved_by INTEGER');
+        await db.execute('ALTER TABLE inventory_inbound ADD COLUMN notes TEXT');
+        await db.execute('ALTER TABLE inventory_inbound ADD COLUMN approved_at TEXT');
+
+        print("Đã bổ sung các cột approved_by, notes, approved_at vào inventory_inbound");
+
+        await db.execute('''
+        CREATE TABLE inventory_inbound_items (
+          item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+          inbound_id INTEGER,
+          product_id INTEGER,
+          quantity INTEGER NOT NULL,
+          FOREIGN KEY (inbound_id) REFERENCES inventory_inbound (inbound_id) ON DELETE CASCADE,
+          FOREIGN KEY (product_id) REFERENCES products (product_id)
+        )
+      ''');
+
+        print("Đã tạo bảng chi tiết inventory_inbound_items");
+      } catch (e) {
+        print("Lỗi khi nâng cấp bảng kho hàng: $e");
+      }
     }
   }
 
