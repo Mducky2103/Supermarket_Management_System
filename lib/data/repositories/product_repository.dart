@@ -40,9 +40,14 @@ class ProductRepository {
     return await db.delete('products', where: 'product_id = ?', whereArgs: [id]);
   }
 
-  Future<int> toggleProductStatus(int id, int isActive) async {
+  Future<int> toggleProductStatus(int id, bool isActive) async {
     final db = await dbHelper.database;
-    return await db.update('products', {'is_active': isActive}, where: 'product_id = ?', whereArgs: [id]);
+    return await db.update(
+        'products',
+        {'is_active': isActive ? 1 : 0},
+        where: 'product_id = ?',
+        whereArgs: [id]
+    );
   }
 
   // Tìm sản phẩm theo Barcode

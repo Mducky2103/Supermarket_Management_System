@@ -44,39 +44,76 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
             separatorBuilder: (context, index) => const Divider(),
             itemBuilder: (context, index) {
               final item = products[index];
-              return ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                leading: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: item['image_path'] != null && File(item['image_path']).existsSync()
-                      ? ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.file(File(item['image_path']), fit: BoxFit.cover),
-                  )
-                      : const Icon(Icons.image_not_supported, color: Colors.grey),
-                ),
-                title: Text(
-                  item['name'] ?? "Không tên",
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Barcode: ${item['barcode'] ?? 'N/A'}"),
-                    Text(
-                      "Kho: ${item['stock_qty']} | Giá: ${item['price']} VNĐ",
-                      style: const TextStyle(color: Colors.blueGrey),
+
+              bool isActive = (item['is_active'] ?? 1) == 1;
+
+              return Opacity(
+                opacity: isActive ? 1.0 : 0.5,
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  leading: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ],
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.edit_note, color: Colors.blue, size: 30),
-                  onPressed: () => _showProductForm(product: item),
+                    child: item['image_path'] != null && File(item['image_path']).existsSync()
+                        ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(File(item['image_path']), fit: BoxFit.cover),
+                    )
+                        : const Icon(Icons.image_not_supported, color: Colors.grey),
+                  ),
+                  title: Text(
+                    item['name'] ?? "Không tên",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      decoration: isActive ? null : TextDecoration.lineThrough,
+                    ),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Barcode: ${item['barcode'] ?? 'N/A'}"),
+                      Text(
+                        "Kho: ${item['stock_qty']} | Giá: ${item['price']} VNĐ",
+                        style: const TextStyle(color: Colors.blueGrey),
+                      ),
+                      if (!isActive)
+                        const Text(
+                          "ĐÃ NGỪNG KINH DOANH",
+                          style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                    ],
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit_note, color: Colors.blue, size: 30),
+                        onPressed: isActive ? () => _showProductForm(product: item) : null,
+                      ),
+                      Switch(
+                        value: isActive,
+                        activeThumbColor: Colors.green,
+                        onChanged: (value) async {
+                          await _productRepo.toggleProductStatus(item['product_id'], value);
+                          _refresh();
+
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(value ? "Đã kích hoạt sản phẩm" : "Đã ngừng kinh doanh sản phẩm"),
+                                duration: const Duration(seconds: 1),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
