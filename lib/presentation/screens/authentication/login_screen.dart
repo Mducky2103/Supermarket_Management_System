@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../data/service/auth_service.dart';
@@ -22,15 +21,13 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _isPasswordVisible = false;
 
-  // Hàm giải mã JWT giả lập để lấy Role
-  String _getRoleFromToken(String token) {
+  Map<String, dynamic>? _getDecodedToken(String token) {
     try {
-      // JWT giả lập của chúng ta là chuỗi Base64 của JSON Payload
       final String decoded = utf8.decode(base64Decode(token));
-      final Map<String, dynamic> payload = jsonDecode(decoded);
-      return payload['role'] ?? 'staff';
+      return jsonDecode(decoded) as Map<String, dynamic>;
     } catch (e) {
-      return 'staff'; // Mặc định nếu lỗi
+      debugPrint("Error decoding token: $e");
+      return null;
     }
   }
 
@@ -38,34 +35,59 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
+
     bool success = await _authService.login(_userController.text, _passController.text);
+
     setState(() => _isLoading = false);
 
     if (success && mounted) {
       final prefs = await SharedPreferences.getInstance();
-
-      // Lấy token để giải mã lấy Role (theo chuẩn JWT bạn đang làm)
       String? token = prefs.getString('jwt_token');
 
       if (token != null) {
-        // Giải mã lấy role từ token
-        final payload = jsonDecode(utf8.decode(base64Decode(token)));
-        String role = payload['role'];
+        final payload = _getDecodedToken(token);
 
-        print("DEBUG: Đăng nhập thành công với Role = $role");
+        if (payload != null) {
+          int userId = payload['user_id'] ?? 0;
+          String role = payload['role'] ?? 'staff';
+          String username = payload['username'] ?? '';
 
-        // Điều hướng
-        if (role == 'admin') {
-          Navigator.pushReplacementNamed(context, '/admin_dashboard');
-        } else {
-          Navigator.pushReplacementNamed(context, '/signup');
+          await prefs.setInt('user_id', userId);
+          await prefs.setString('user_role', role);
+          await prefs.setString('user_name', username);
+
+          debugPrint("DEBUG: Login Success | ID: $userId | Role: $role");
+
+          // if (role == 'admin') {
+          //   Navigator.pushReplacementNamed(context, '/admin_dashboard');
+          // } else if (role == 'staff') {
+          //   Navigator.pushReplacementNamed(context, '/warehouse_staff');
+          // } else if (role == 'manager') {
+          //   Navigator.pushReplacementNamed(context, '/manager_inventory');
+          // } else if (role == 'cashier') {
+          //   Navigator.pushReplacementNamed(context, '/cashier_dashboard'); // cashier
+          // } else {
+          //   Navigator.pushReplacementNamed(context, '/'); // customer
+          // }
+          final routes = {
+            'admin': '/admin_dashboard',
+            'staff': '/warehouse_staff',
+            'manager': '/manager_inventory',
+            'cashier': '/cashier_dashboard',
+          };
+
+          Navigator.pushReplacementNamed(context, routes[role] ?? '/');
         }
       }
     } else {
-      print("DEBUG: Đăng nhập thất bại");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login Failed! Check username/password.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login Failed! Invalid username or password.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     }
   }
 
@@ -78,8 +100,9 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Form(
             key: _formKey,
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const LoginHeader(), // Widget đã tách
+                const LoginHeader(),
                 const SizedBox(height: 32),
 
                 CommonTextField(
@@ -96,10 +119,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   prefixIcon: Icons.lock,
                   isPassword: true,
                   isVisible: _isPasswordVisible,
-                  onVisibilityPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                  onVisibilityPressed: () =>
+                      setState(() => _isPasswordVisible = !_isPasswordVisible),
                   validator: (v) => v!.length < 3 ? "Too short" : null,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
 
                 Align(
                   alignment: Alignment.centerRight,
@@ -117,13 +141,29 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                     onPressed: _isLoading ? null : _onLogin,
-                    child: _isLoading ? const CircularProgressIndicator() : const Text("LOGIN"),
+                    child: _isLoading
+                        ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                    )
+                        : const Text("LOGIN", style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ),
-                TextButton(
-                  onPressed: () => Navigator.pushNamed(context, '/signup'),
-                  child: const Text("Don't have an account? Sign Up"),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("Don't have an account?"),
+                    TextButton(
+                      onPressed: () => Navigator.pushNamed(context, '/signup'),
+                      child: const Text("Sign Up"),
+                    ),
+                  ],
                 )
               ],
             ),

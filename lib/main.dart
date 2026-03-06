@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:sms_project/presentation/screens/admin_screen/admin_dashboard.dart';
-import 'package:sms_project/presentation/screens/admin_screen/user_management_screen.dart';
+import 'package:sms_project/presentation/screens/actors_screen/admin_dashboard.dart';
+import 'package:sms_project/presentation/screens/actors_screen/manager_screen.dart';
+import 'package:sms_project/presentation/screens/actors_screen/user_management_screen.dart';
+import 'package:sms_project/presentation/screens/actors_screen/warehouse_staff_screen.dart';
 import 'package:sms_project/presentation/screens/authentication/login_screen.dart';
 import 'package:sms_project/presentation/screens/authentication/password/forgot_password_screen.dart';
 import 'package:sms_project/presentation/screens/authentication/signup_screen.dart';
@@ -34,7 +36,10 @@ class MyApp extends StatelessWidget {
         '/category_management': (context) => const CategoryScreen(),
 
         //Employee routes
-        // '/cashier_dashboard': (context) => const CashierDashboard(), // Bạn sẽ tạo sau
+        '/warehouse_staff': (context) => const WarehouseStaffScreen(),
+        '/manager_inventory': (context) => const ManagerInventoryScreen(),
+
+        // '/cashier_dashboard': (context) => const CashierDashboard(),
       },
 
       // trường hợp không tìm thấy trang
