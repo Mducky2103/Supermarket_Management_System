@@ -71,12 +71,13 @@ class _LoginScreenState extends State<LoginScreen> {
           // }
           final routes = {
             'admin': '/admin_dashboard',
-            'staff': '/warehouse_staff',
+            'warehouse_staff': '/warehouse_staff',
             'manager': '/manager_inventory',
             'cashier': '/cashier_dashboard',
           };
 
-          Navigator.pushReplacementNamed(context, routes[role] ?? '/');
+          final String destination = routes[role] ?? '/';
+          Navigator.pushReplacementNamed(context, destination);
         }
       }
     } else {

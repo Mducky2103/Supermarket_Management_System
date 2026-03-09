@@ -77,6 +77,18 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text("Barcode: ${item['barcode'] ?? 'N/A'}"),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on, size: 14, color: Colors.orange),
+                          const SizedBox(width: 4),
+                          Text(
+                            item['location'] != null && item['location'].toString().isNotEmpty 
+                                ? item['location'] 
+                                : "Chưa xác định",
+                            style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
                       Text(
                         "Kho: ${item['stock_qty']} | Giá: ${item['price']} VNĐ",
                         style: const TextStyle(color: Colors.blueGrey),

@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/material.dart';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,10 +31,35 @@ class AuthService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('jwt_token', token);
       await prefs.setString('user_role', user['role']);
+      await prefs.setInt('user_id', user['user_id']);
+      await prefs.setString('full_name', user['full_name']);
 
       return true;
     }
     return false;
+  }
+
+  Future<int?> getUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('user_id');
+  }
+
+  Future<String?> getUserName() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('full_name');
+  }
+
+  Future<String?> getUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_role');
+  }
+
+  Future<void> logout(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    if (context.mounted) {
+      Navigator.pushReplacementNamed(context, '/');
+    }
   }
 
   static String? _generatedOTP;

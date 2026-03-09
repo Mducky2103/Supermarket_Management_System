@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../../data/service/auth_service.dart';
 import 'user_management_screen.dart';
 
 class AdminDashboard extends StatelessWidget {
@@ -7,13 +7,15 @@ class AdminDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authService = AuthService();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Admin Dashboard"),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => _handleLogout(context),
+            onPressed: () => authService.logout(context),
           ),
         ],
       ),
@@ -115,11 +117,5 @@ class AdminDashboard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _handleLogout(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    Navigator.pushReplacementNamed(context, '/');
   }
 }

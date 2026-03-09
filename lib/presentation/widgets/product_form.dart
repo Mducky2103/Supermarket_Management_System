@@ -25,6 +25,7 @@ class _ProductFormState extends State<ProductForm> {
   final _priceCtrl = TextEditingController();
   final _costPriceCtrl = TextEditingController();
   final _stockCtrl = TextEditingController();
+  final _locationCtrl = TextEditingController(); // Thêm controller cho vị trí
 
   int? _selectedCategoryId;
   String? _imagePath;
@@ -39,6 +40,7 @@ class _ProductFormState extends State<ProductForm> {
       _priceCtrl.text = widget.product!['price']?.toString() ?? '';
       _costPriceCtrl.text = widget.product!['cost_price']?.toString() ?? '';
       _stockCtrl.text = widget.product!['stock_qty']?.toString() ?? '0';
+      _locationCtrl.text = widget.product!['location'] ?? '';
       _selectedCategoryId = widget.product!['category_id'];
       _imagePath = widget.product!['image_path'];
     }
@@ -134,6 +136,10 @@ class _ProductFormState extends State<ProductForm> {
                 decoration: const InputDecoration(labelText: "Danh mục", prefixIcon: Icon(Icons.category)),
                 validator: (v) => v == null ? "Chọn danh mục" : null,
               ),
+              TextFormField(
+                controller: _locationCtrl,
+                decoration: const InputDecoration(labelText: "Vị trí trong kho (VD: Kệ A1, Tủ 2)", prefixIcon: Icon(Icons.location_on)),
+              ),
               Row(
                 children: [
                   Expanded(
@@ -181,6 +187,7 @@ class _ProductFormState extends State<ProductForm> {
                           'price': double.parse(_priceCtrl.text),
                           'cost_price': double.parse(_costPriceCtrl.text),
                           'stock_qty': int.parse(_stockCtrl.text),
+                          'location': _locationCtrl.text, // Thêm vào Map lưu trữ
                           'image_path': _imagePath,
                         };
 

@@ -19,7 +19,13 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 5,
+      version: 1,
+      onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
+      onOpen: (db) async {
+        await db.rawQuery('PRAGMA journal_mode=WAL');
+      },
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -35,7 +41,7 @@ class DatabaseHelper {
 
     // 1. Bảng Users
     await db.execute('''
-      CREATE TABLE users (
+      CREATE TABLE IF NOT EXISTS users (
         user_id $idType,
         username $textUniqueType,
         password $textType,
@@ -49,7 +55,7 @@ class DatabaseHelper {
 
     // 2. Bảng Categories
     await db.execute('''
-      CREATE TABLE categories (
+      CREATE TABLE IF NOT EXISTS categories (
         category_id $idType,
         name $textType,
         description TEXT
@@ -58,14 +64,15 @@ class DatabaseHelper {
 
     // 3. Bảng Products
     await db.execute('''
-      CREATE TABLE products (
+      CREATE TABLE IF NOT EXISTS products (
         product_id $idType,
         barcode $textUniqueType,
         name $textType,
         category_id $integerType,
         price $doubleType,
         cost_price $doubleType,
-        stock_qty $integerType,
+        stock_qty INTEGER NOT NULL DEFAULT 0,
+        location TEXT,
         image_path TEXT,
         is_active INTEGER DEFAULT 1,
         FOREIGN KEY (category_id) REFERENCES categories (category_id)
@@ -74,7 +81,7 @@ class DatabaseHelper {
 
     // 4. Bảng Invoices
     await db.execute('''
-      CREATE TABLE invoices (
+      CREATE TABLE IF NOT EXISTS invoices (
         invoice_id $idType,
         user_id $integerType,
         total_amount $doubleType,
@@ -87,7 +94,7 @@ class DatabaseHelper {
 
     // 5. Bảng InvoiceDetails
     await db.execute('''
-      CREATE TABLE invoice_details (
+      CREATE TABLE IF NOT EXISTS invoice_details (
         detail_id $idType,
         invoice_id $integerType,
         product_id $integerType,
@@ -99,9 +106,9 @@ class DatabaseHelper {
       )
     ''');
 
-    // 6. Bảng Customers (Quản lý khách hàng & Loyalty)
+    // 6. Bảng Customers
     await db.execute('''
-    CREATE TABLE customers (
+    CREATE TABLE IF NOT EXISTS customers (
       customer_id INTEGER PRIMARY KEY AUTOINCREMENT,
       phone_number TEXT UNIQUE,
       full_name TEXT,
@@ -110,13 +117,13 @@ class DatabaseHelper {
     )
   ''');
 
-    // 7. Bảng InventoryInbound (Nhập kho)
+    // 7. Bảng InventoryInbound
     await db.execute('''
-    CREATE TABLE inventory_inbound (
+    CREATE TABLE IF NOT EXISTS inventory_inbound (
       inbound_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER,          -- Người tạo (Warehouse Staff)
-      approved_by INTEGER,      -- Người duyệt (Manager)
-      status TEXT,              -- Pending, Approved, Rejected
+      user_id INTEGER,
+      approved_by INTEGER,
+      status TEXT,
       notes TEXT,               
       created_at TEXT,          
       approved_at TEXT,         
@@ -125,21 +132,60 @@ class DatabaseHelper {
     )
   ''');
 
-    // 8. Bảng InventoryInboundItems (Chi tiết phiếu nhập)
+    // 8. Bảng InventoryInboundItems
     await db.execute('''
-    CREATE TABLE inventory_inbound_items (
+    CREATE TABLE IF NOT EXISTS inventory_inbound_items (
       item_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      inbound_id INTEGER,       -- Liên kết với phiếu nhập bên trên
-      product_id INTEGER,       -- Sản phẩm nào
-      quantity INTEGER,         -- Số lượng nhập vào
-      FOREIGN KEY (inbound_id) REFERENCES inventory_inbound (inbound_id),
+      inbound_id INTEGER,
+      product_id INTEGER,
+      quantity INTEGER,
+      expiry_date TEXT,      
+      batch_number TEXT, 
+      FOREIGN KEY (inbound_id) REFERENCES inventory_inbound (inbound_id) ON DELETE CASCADE,
       FOREIGN KEY (product_id) REFERENCES products (product_id)
     )
   ''');
 
-    // 9. Bảng Promotions (Khuyến mãi)
+    // 9. Bảng InventoryChecks
     await db.execute('''
-    CREATE TABLE promotions (
+    CREATE TABLE IF NOT EXISTS inventory_checks (
+      check_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      check_date TEXT,
+      status TEXT DEFAULT 'Pending',
+      FOREIGN KEY (user_id) REFERENCES users (user_id)
+    )
+  ''');
+
+    // 10. Bảng InventoryCheckItems
+    await db.execute('''
+    CREATE TABLE IF NOT EXISTS inventory_check_items (
+      check_item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      check_id INTEGER,
+      product_id INTEGER,
+      system_qty INTEGER,
+      actual_qty INTEGER,
+      discrepancy INTEGER,
+      FOREIGN KEY (check_id) REFERENCES inventory_checks (check_id) ON DELETE CASCADE,
+      FOREIGN KEY (product_id) REFERENCES products (product_id)
+    )
+  ''');
+
+    // 11. Bảng InventoryDisposal
+    await db.execute('''
+    CREATE TABLE IF NOT EXISTS inventory_disposal (
+      disposal_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id INTEGER,
+      quantity INTEGER,
+      reason TEXT,
+      created_at TEXT,
+      FOREIGN KEY (product_id) REFERENCES products (product_id)
+    )
+  ''');
+
+    // 12. Bảng Promotions
+    await db.execute('''
+    CREATE TABLE IF NOT EXISTS promotions (
       promo_id INTEGER PRIMARY KEY AUTOINCREMENT,
       promo_code TEXT UNIQUE,
       discount_percent REAL,
@@ -148,57 +194,24 @@ class DatabaseHelper {
     )
   ''');
 
-    // Chèn dữ liệu mẫu cho Admin
-    await db.rawInsert(
-        'INSERT INTO users(username, password, full_name, email, role, is_active) VALUES(?, ?, ?, ?, ?, ?)',
-        ['admin', 'admin123', 'System Administrator', 'ducminh211103@gmail.com', 'admin', 1]
+    await db.insert(
+      'users',
+      {
+        'username': 'admin',
+        'password': '123456',
+        'full_name': 'System Administrator',
+        'email': 'admin@gmail.com',
+        'role': 'admin',
+        'is_active': 1
+      },
+      conflictAlgorithm: ConflictAlgorithm.ignore,
     );
   }
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      await db.execute('ALTER TABLE users ADD COLUMN token TEXT');
-    }
-    if (oldVersion < 3) {
-      // Thêm cột email vào bảng users nếu đang ở version cũ hơn 3
-      await db.execute('ALTER TABLE users ADD COLUMN email TEXT');
-      print("Database upgraded: Added email column to users table");
-    }
-    if (oldVersion < 4 ) {
-      try {
-        await db.execute('ALTER TABLE products ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1');
-        print("Đã thêm cột is_active thành công!");
-      } catch (e) {
-        print("Cột đã tồn tại hoặc có lỗi: $e");
-      }
-    }
-    if (oldVersion < 7) {
-      try {
-        await db.execute('ALTER TABLE inventory_inbound ADD COLUMN approved_by INTEGER');
-        await db.execute('ALTER TABLE inventory_inbound ADD COLUMN notes TEXT');
-        await db.execute('ALTER TABLE inventory_inbound ADD COLUMN approved_at TEXT');
 
-        print("Đã bổ sung các cột approved_by, notes, approved_at vào inventory_inbound");
-
-        await db.execute('''
-        CREATE TABLE inventory_inbound_items (
-          item_id INTEGER PRIMARY KEY AUTOINCREMENT,
-          inbound_id INTEGER,
-          product_id INTEGER,
-          quantity INTEGER NOT NULL,
-          FOREIGN KEY (inbound_id) REFERENCES inventory_inbound (inbound_id) ON DELETE CASCADE,
-          FOREIGN KEY (product_id) REFERENCES products (product_id)
-        )
-      ''');
-
-        print("Đã tạo bảng chi tiết inventory_inbound_items");
-      } catch (e) {
-        print("Lỗi khi nâng cấp bảng kho hàng: $e");
-      }
-    }
   }
 
-  // Đóng kết nối
   Future close() async {
     final db = await instance.database;
     db.close();

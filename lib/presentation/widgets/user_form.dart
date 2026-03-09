@@ -25,7 +25,7 @@ class _UserFormState extends State<UserForm> {
     _userCtrl = TextEditingController(text: widget.user?['username'] ?? '');
     _emailCtrl = TextEditingController(text: widget.user?['email'] ?? '');
     _passCtrl = TextEditingController();
-    _selectedRole = widget.user?['role'] ?? 'staff';
+    _selectedRole = widget.user?['role'] ?? 'warehouse_staff';
   }
 
   @override
@@ -82,7 +82,9 @@ class _UserFormState extends State<UserForm> {
                 value: _selectedRole,
                 items: const [
                   DropdownMenuItem(value: 'admin', child: Text("Admin")),
-                  DropdownMenuItem(value: 'staff', child: Text("Staff")),
+                  DropdownMenuItem(value: 'warehouse_staff', child: Text("Warehouse Staff")),
+                  DropdownMenuItem(value: 'manager', child: Text("Manager")),
+                  DropdownMenuItem(value: 'cashier', child: Text("Cashier"))
                 ],
                 onChanged: (v) => setState(() => _selectedRole = v!),
                 decoration: const InputDecoration(labelText: "Vai trò"),
